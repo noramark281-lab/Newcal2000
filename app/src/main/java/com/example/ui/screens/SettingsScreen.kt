@@ -27,8 +27,6 @@ import com.example.ui.ClinicScreen
 import com.example.ui.ClinicViewModel
 import com.example.ui.theme.*
 import com.example.utils.CommunicationUtil
-import com.google.firebase.Firebase
-import com.google.firebase.auth.auth
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -86,7 +84,7 @@ fun SettingsScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             // Google Account Status
-            val currentUser = Firebase.auth.currentUser
+            val currentUser = getFirebaseAuthOrNull(context)?.currentUser
             Surface(
                 shape = RoundedCornerShape(16.dp),
                 color = Color(0xF5FFFFFF),
