@@ -34,44 +34,74 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      - name: Prepare Environment & Secrets
+      - name: Prepare Keystores & Environment
         run: |
           touch .env
           if [ -f .env.example ]; then
             cat .env.example >> .env
           fi
-          # Restore debug keystore if present in base64
-          if [ ! -f debug.keystore ] && [ -f debug.keystore.base64 ]; then
+
+          # 1. Restore debug.keystore
+          if [ -f debug.keystore.base64 ]; then
             echo "Restoring debug.keystore from base64..."
             base64 -d debug.keystore.base64 > debug.keystore
           elif [ ! -f debug.keystore ]; then
-            echo "Generating debug.keystore fallback..."
+            echo "Generating debug.keystore..."
             keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+          # 2. Restore user's release upload keystore (MALEK-123)
+          if [ -f my-upload-key.base64 ]; then
+            echo "Restoring my-upload-key.jks from base64..."
+            base64 -d my-upload-key.base64 > my-upload-key.jks
+          fi
+          if [ -f release-keystore.base64 ]; then
+            echo "Restoring release-keystore.base64..."
+            base64 -d release-keystore.base64 > release-keystore.jks
           fi
 
       - name: Make Gradlew Executable
         run: chmod +x gradlew
 
-      - name: Build Debug APK
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+      - name: Build Android APK
+        env:
+          STORE_PASSWORD: "MALEK-123"
+          KEY_PASSWORD: "MALEK-123"
+          KEYSTORE_PATH: "${{ github.workspace }}/my-upload-key.jks"
+          CM_KEYSTORE_PASSWORD: "MALEK-123"
+          CM_KEY_ALIAS: "albader_name"
+          CM_KEY_PASSWORD: "MALEK-123"
+        run: |
+          # Build APK
+          ./gradlew assembleDebug --no-daemon --stacktrace
+          # Also attempt assembleRelease with credentials
+          ./gradlew assembleRelease --no-daemon --stacktrace || true
 
-      - name: Prepare APK Output
+      - name: Collect Output APKs
         run: |
           mkdir -p release-output
-          cp app/build/outputs/apk/debug/app-debug.apk release-output/AlRahman-Clinic-v1.0.apk
-          echo "APK generated successfully at release-output/AlRahman-Clinic-v1.0.apk"
+          find app/build/outputs/apk/ -name "*.apk" -exec cp {} release-output/ \;
+          # Ensure standard named copies for easy download
+          if [ -f release-output/app-debug.apk ]; then
+            cp release-output/app-debug.apk release-output/AlRahman-Clinic-v1.0.apk
+          fi
+          if [ -f release-output/app-release.apk ]; then
+            cp release-output/app-release.apk release-output/AlRahman-Clinic-Release-v1.0.apk
+          fi
+          echo "Output files ready:"
           ls -lh release-output/
 
-      - name: Upload APK as Workflow Artifact
+      - name: Upload APKs as Workflow Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: AlRahman-Clinic-APK
-          path: release-output/AlRahman-Clinic-v1.0.apk
+          path: release-output/*.apk
           retention-days: 30
 
-      - name: Create GitHub Release
-        if: github.event_name == 'workflow_dispatch' && inputs.create_release == true
+      - name: Create GitHub Release with APK
+        if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v2
+        continue-on-error: true
         with:
           tag_name: v1.0.${{ github.run_number }}
           name: "عيادة الرحمن - تطبيق أندرويد v1.0 (Build ${{ github.run_number }})"
@@ -82,16 +112,18 @@ jobs:
             - **البريد:** aboanasanam42@gmail.com
             
             ---
-            #### 📱 التثبيت والتحميل:
+            #### 📱 التثبيت والتحميل المباشر:
             قم بتحميل ملف `AlRahman-Clinic-v1.0.apk` المرفق بالأسفل وتثبيته مباشرة على هاتفك الأندرويد.
-          files: release-output/AlRahman-Clinic-v1.0.apk
+          files: release-output/*.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Add Step Summary
         run: |
           echo "## 🚀 تم بناء تطبيق عيادة الرحمن بنجاح! (Build Successful)" >> $GITHUB_STEP_SUMMARY
-          echo "تم إنشاء ملف الـ APK بنجاح ويمكنك تحميله الآن مباشرة من قسم **Artifacts** في أعلى أو أسفل هذه الصفحة باسم: **AlRahman-Clinic-APK**." >> $GITHUB_STEP_SUMMARY
+          echo "تم إنشاء ملف الـ APK بنجاح ويمكنك تحميله الآن مباشرة:" >> $GITHUB_STEP_SUMMARY
+          echo "1. من قسم **Artifacts** في أعلى أو أسفل هذه الصفحة باسم: **AlRahman-Clinic-APK**." >> $GITHUB_STEP_SUMMARY
+          echo "2. من قسم **Releases** في مستودع مشروعك على GitHub." >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **اسم الملف:** AlRahman-Clinic-v1.0.apk" >> $GITHUB_STEP_SUMMARY
           echo "- **النسخة:** 1.0 (Android 15 Ready)" >> $GITHUB_STEP_SUMMARY
