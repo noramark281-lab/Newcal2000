@@ -248,6 +248,20 @@ fun AuthScreen(
     }
 }
 
+private fun getGoogleWebClientId(context: Context): String {
+    // Resolve the resource dynamically so builds without google-services.json still compile.
+    // A valid Firebase/Google client ID is required at runtime for Google sign-in.
+    val resourceId = context.resources.getIdentifier(
+        "default_web_client_id",
+        "string",
+        context.packageName
+    )
+    check(resourceId != 0) {
+        "Google Sign-In is not configured. Add the correct google-services.json for this app."
+    }
+    return context.getString(resourceId)
+}
+
 fun attemptAutoSignIn(
     context: Context,
     credentialManager: CredentialManager,
@@ -260,7 +274,7 @@ fun attemptAutoSignIn(
         return
     }
     val clientId = try {
-        context.getString(R.string.default_web_client_id)
+        getGoogleWebClientId(context)
     } catch (e: Exception) {
         onUnauthenticated()
         return
@@ -301,7 +315,7 @@ fun onGoogleSignInClicked(
     onAuthCancelled: () -> Unit = {}
 ) {
     val clientId = try {
-        context.getString(R.string.default_web_client_id)
+        getGoogleWebClientId(context)
     } catch (e: Exception) {
         onAuthError("Google Sign-In configuration missing: default_web_client_id not found")
         return
