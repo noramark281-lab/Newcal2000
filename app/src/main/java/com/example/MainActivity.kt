@@ -21,7 +21,9 @@ import com.example.ui.components.ClinicNavigationDrawer
 import com.example.ui.screens.*
 import com.example.ui.theme.MyApplicationTheme
 import com.example.utils.CommunicationUtil
+import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.auth
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -45,31 +47,24 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppRoot(viewModel: ClinicViewModel) {
-    val context = L@Composable
-fun AppRoot(viewModel: ClinicViewModel) {
     val context = LocalContext.current
-    val firebaseAuth = remember(context) { getFirebaseAuthOrNull(context) }
-    var currentUser by remember(firebaseAuth) { mutableStateOf(firebaseAuth?.currentUser) }
+    val coroutineScope = rememberCoroutineScope()
+    var currentUser by remember { mutableStateOf(Firebase.auth.currentUser) }
 
-    DisposableEffect(firebaseAuth) {
-        if (firebaseAuth == null) {
-            onDispose { }
-        } else {
-            val listener = FirebaseAuth.AuthStateListener { auth ->
-                currentUser = auth.currentUser
-            }
-            firebaseAuth.addAuthStateListener(listener)
-            onDispose { firebaseAuth.removeAuthStateListener(listener) }
+    DisposableEffect(Unit) {
+        val listener = FirebaseAuth.AuthStateListener { auth ->
+            currentUser = auth.currentUser
+        }
+        Firebase.auth.addAuthStateListener(listener)
+        onDispose {
+            Firebase.auth.removeAuthStateListener(listener)
         }
     }
 
-    // Keep the clinic usable in local/offline mode if Firebase configuration is absent.
-    if (firebaseAuth == null) {
-        ClinicAppScaffold(viewModel = viewModel, onSignedOut = {})
-    } else if (currentUser == null) {
+    if (currentUser == null) {
         AuthScreen(
             onAuthSuccess = {
-                currentUser = firebaseAuth.currentUser
+                currentUser = Firebase.auth.currentUser
                 viewModel.syncAllLocalToCloud()
             }
         )
@@ -79,12 +74,17 @@ fun AppRoot(viewModel: ClinicViewModel) {
         }
         ClinicAppScaffold(
             viewModel = viewModel,
-            onSignedOut = { currentUser = null }
+            onSignedOut = {
+                currentUser = null
+            }
         )
     }
 }
 
-SignedOut: () -> Unit
+@Composable
+fun ClinicAppScaffold(
+    viewModel: ClinicViewModel,
+    onSignedOut: () -> Unit
 ) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
