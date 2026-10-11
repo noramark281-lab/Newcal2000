@@ -47,38 +47,23 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppRoot(viewModel: ClinicViewModel) {
-    val context = LocalContext.current
-    val coroutineScope = rememberCoroutineScope()
-    var currentUser by remember { mutableStateOf(Firebase.auth.currentUser) }
+    // Open the clinic app directly without showing the Google sign-in screen.
+    // Local Room data remains available. Cloud sync runs only when Firebase has
+    // an authenticated user; bypassing sign-in does not create a cloud session.
+    val currentUser = Firebase.auth.currentUser
 
-    DisposableEffect(Unit) {
-        val listener = FirebaseAuth.AuthStateListener { auth ->
-            currentUser = auth.currentUser
-        }
-        Firebase.auth.addAuthStateListener(listener)
-        onDispose {
-            Firebase.auth.removeAuthStateListener(listener)
-        }
-    }
-
-    if (currentUser == null) {
-        AuthScreen(
-            onAuthSuccess = {
-                currentUser = Firebase.auth.currentUser
-                viewModel.syncAllLocalToCloud()
-            }
-        )
-    } else {
-        LaunchedEffect(currentUser?.uid) {
+    LaunchedEffect(currentUser?.uid) {
+        if (currentUser != null) {
             viewModel.syncAllLocalToCloud()
         }
-        ClinicAppScaffold(
-            viewModel = viewModel,
-            onSignedOut = {
-                currentUser = null
-            }
-        )
     }
+
+    ClinicAppScaffold(
+        viewModel = viewModel,
+        onSignedOut = {
+            // Keep the app open locally if the user signs out of Firebase.
+        }
+    )
 }
 
 @Composable
