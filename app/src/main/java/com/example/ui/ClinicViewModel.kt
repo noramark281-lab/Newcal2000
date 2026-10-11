@@ -11,8 +11,8 @@ import com.example.data.model.MaterialRecord
 import com.example.data.model.PatientRecord
 import com.example.data.repository.ClinicRepository
 import com.example.data.repository.FirestoreRepository
-import com.google.firebase.FirebaseApp
-import com.example.ui.screens.getFirebaseAuthOrNull
+import com.google.firebase.Firebase
+import com.google.firebase.auth.auth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -51,14 +51,12 @@ data class FinancialSummary(
 class ClinicViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: ClinicRepository
-    private val firestoreRepo: FirestoreRepository?
+    private val firestoreRepo: FirestoreRepository
 
     init {
         val db = AppDatabase.getDatabase(application)
         repository = ClinicRepository(db)
-        firestoreRepo = if (FirebaseApp.getApps(application).isNotEmpty()) {
-            try { FirestoreRepository(application) } catch (_: Exception) { null }
-        } else null
+        firestoreRepo = FirestoreRepository(application)
     }
 
     // Active Screen & Navigation
@@ -144,8 +142,8 @@ class ClinicViewModel(application: Application) : AndroidViewModel(application) 
     fun addPatient(patient: PatientRecord) {
         viewModelScope.launch {
             val generatedId = repository.insertPatient(patient)
-            if (getFirebaseAuthOrNull(getApplication())?.currentUser != null) {
-                firestoreRepo?.syncPatient(patient.copy(id = generatedId))
+            if (Firebase.auth.currentUser != null) {
+                firestoreRepo.syncPatient(patient.copy(id = generatedId))
             }
         }
     }
@@ -153,8 +151,8 @@ class ClinicViewModel(application: Application) : AndroidViewModel(application) 
     fun updatePatient(patient: PatientRecord) {
         viewModelScope.launch {
             repository.updatePatient(patient)
-            if (getFirebaseAuthOrNull(getApplication())?.currentUser != null) {
-                firestoreRepo?.syncPatient(patient)
+            if (Firebase.auth.currentUser != null) {
+                firestoreRepo.syncPatient(patient)
             }
         }
     }
@@ -162,8 +160,8 @@ class ClinicViewModel(application: Application) : AndroidViewModel(application) 
     fun deletePatient(patient: PatientRecord) {
         viewModelScope.launch {
             repository.deletePatient(patient)
-            if (getFirebaseAuthOrNull(getApplication())?.currentUser != null) {
-                firestoreRepo?.deletePatientFromCloud(patient.id)
+            if (Firebase.auth.currentUser != null) {
+                firestoreRepo.deletePatientFromCloud(patient.id)
             }
         }
     }
@@ -172,8 +170,8 @@ class ClinicViewModel(application: Application) : AndroidViewModel(application) 
     fun addLab(lab: LabRecord) {
         viewModelScope.launch {
             val generatedId = repository.insertLab(lab)
-            if (getFirebaseAuthOrNull(getApplication())?.currentUser != null) {
-                firestoreRepo?.syncLab(lab.copy(id = generatedId))
+            if (Firebase.auth.currentUser != null) {
+                firestoreRepo.syncLab(lab.copy(id = generatedId))
             }
         }
     }
@@ -181,8 +179,8 @@ class ClinicViewModel(application: Application) : AndroidViewModel(application) 
     fun updateLab(lab: LabRecord) {
         viewModelScope.launch {
             repository.updateLab(lab)
-            if (getFirebaseAuthOrNull(getApplication())?.currentUser != null) {
-                firestoreRepo?.syncLab(lab)
+            if (Firebase.auth.currentUser != null) {
+                firestoreRepo.syncLab(lab)
             }
         }
     }
@@ -190,8 +188,8 @@ class ClinicViewModel(application: Application) : AndroidViewModel(application) 
     fun deleteLab(lab: LabRecord) {
         viewModelScope.launch {
             repository.deleteLab(lab)
-            if (getFirebaseAuthOrNull(getApplication())?.currentUser != null) {
-                firestoreRepo?.deleteLabFromCloud(lab.id)
+            if (Firebase.auth.currentUser != null) {
+                firestoreRepo.deleteLabFromCloud(lab.id)
             }
         }
     }
@@ -200,8 +198,8 @@ class ClinicViewModel(application: Application) : AndroidViewModel(application) 
     fun addMaterial(material: MaterialRecord) {
         viewModelScope.launch {
             val generatedId = repository.insertMaterial(material)
-            if (getFirebaseAuthOrNull(getApplication())?.currentUser != null) {
-                firestoreRepo?.syncMaterial(material.copy(id = generatedId))
+            if (Firebase.auth.currentUser != null) {
+                firestoreRepo.syncMaterial(material.copy(id = generatedId))
             }
         }
     }
@@ -209,8 +207,8 @@ class ClinicViewModel(application: Application) : AndroidViewModel(application) 
     fun updateMaterial(material: MaterialRecord) {
         viewModelScope.launch {
             repository.updateMaterial(material)
-            if (getFirebaseAuthOrNull(getApplication())?.currentUser != null) {
-                firestoreRepo?.syncMaterial(material)
+            if (Firebase.auth.currentUser != null) {
+                firestoreRepo.syncMaterial(material)
             }
         }
     }
@@ -218,8 +216,8 @@ class ClinicViewModel(application: Application) : AndroidViewModel(application) 
     fun deleteMaterial(material: MaterialRecord) {
         viewModelScope.launch {
             repository.deleteMaterial(material)
-            if (getFirebaseAuthOrNull(getApplication())?.currentUser != null) {
-                firestoreRepo?.deleteMaterialFromCloud(material.id)
+            if (Firebase.auth.currentUser != null) {
+                firestoreRepo.deleteMaterialFromCloud(material.id)
             }
         }
     }
@@ -228,8 +226,8 @@ class ClinicViewModel(application: Application) : AndroidViewModel(application) 
     fun addAccount(account: ClinicAccount) {
         viewModelScope.launch {
             val generatedId = repository.insertAccount(account)
-            if (getFirebaseAuthOrNull(getApplication())?.currentUser != null) {
-                firestoreRepo?.syncAccount(account.copy(id = generatedId))
+            if (Firebase.auth.currentUser != null) {
+                firestoreRepo.syncAccount(account.copy(id = generatedId))
             }
         }
     }
@@ -237,8 +235,8 @@ class ClinicViewModel(application: Application) : AndroidViewModel(application) 
     fun updateAccount(account: ClinicAccount) {
         viewModelScope.launch {
             repository.updateAccount(account)
-            if (getFirebaseAuthOrNull(getApplication())?.currentUser != null) {
-                firestoreRepo?.syncAccount(account)
+            if (Firebase.auth.currentUser != null) {
+                firestoreRepo.syncAccount(account)
             }
         }
     }
@@ -253,8 +251,8 @@ class ClinicViewModel(application: Application) : AndroidViewModel(application) 
     fun updateSettings(newSettings: ClinicSettings) {
         viewModelScope.launch {
             repository.saveSettings(newSettings)
-            if (getFirebaseAuthOrNull(getApplication())?.currentUser != null) {
-                firestoreRepo?.syncProfile(newSettings)
+            if (Firebase.auth.currentUser != null) {
+                firestoreRepo.syncProfile(newSettings)
             }
         }
     }
@@ -262,21 +260,21 @@ class ClinicViewModel(application: Application) : AndroidViewModel(application) 
     // Sync all existing local records to Firestore
     fun syncAllLocalToCloud() {
         viewModelScope.launch {
-            if (getFirebaseAuthOrNull(getApplication())?.currentUser == null || firestoreRepo == null) return@launch
+            if (Firebase.auth.currentUser == null) return@launch
             try {
                 val currentPatients = repository.allPatients.first()
-                currentPatients.forEach { firestoreRepo?.syncPatient(it) }
+                currentPatients.forEach { firestoreRepo.syncPatient(it) }
 
                 val currentLabs = repository.allLabs.first()
-                currentLabs.forEach { firestoreRepo?.syncLab(it) }
+                currentLabs.forEach { firestoreRepo.syncLab(it) }
 
                 val currentMaterials = repository.allMaterials.first()
-                currentMaterials.forEach { firestoreRepo?.syncMaterial(it) }
+                currentMaterials.forEach { firestoreRepo.syncMaterial(it) }
 
                 val currentAccounts = repository.allAccounts.first()
-                currentAccounts.forEach { firestoreRepo?.syncAccount(it) }
+                currentAccounts.forEach { firestoreRepo.syncAccount(it) }
 
-                repository.settings.first()?.let { firestoreRepo?.syncProfile(it) }
+                repository.settings.first()?.let { firestoreRepo.syncProfile(it) }
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -290,7 +288,7 @@ class ClinicViewModel(application: Application) : AndroidViewModel(application) 
 
     suspend fun restoreBackupJson(jsonString: String): Boolean {
         val result = repository.restoreBackupJson(jsonString)
-        if (result && getFirebaseAuthOrNull(getApplication())?.currentUser != null) {
+        if (result && Firebase.auth.currentUser != null) {
             syncAllLocalToCloud()
         }
         return result
