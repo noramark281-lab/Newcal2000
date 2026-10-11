@@ -37,14 +37,20 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential.Companion.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
-import com.google.firebase.Firebase
+import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
-import com.google.firebase.auth.auth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 
 @Composable
+fun getFirebaseAuthOrNull(context: Context): FirebaseAuth? = try {
+    FirebaseApp.getApps(context).firstOrNull()?.let { FirebaseAuth.getInstance(it) }
+} catch (_: Exception) {
+    null
+}
+
 fun AuthScreen(
     onAuthSuccess: () -> Unit,
     modifier: Modifier = Modifier
@@ -57,7 +63,7 @@ fun AuthScreen(
 
     // Attempt silent auto-sign-in on initial composition
     LaunchedEffect(Unit) {
-        if (Firebase.auth.currentUser != null) {
+        if (getFirebaseAuthOrNull(context)?.currentUser != null) {
             onAuthSuccess()
             return@LaunchedEffect
         }
@@ -269,7 +275,7 @@ fun attemptAutoSignIn(
     onUnauthenticated: () -> Unit,
     scope: CoroutineScope
 ) {
-    if (Firebase.auth.currentUser != null) {
+    if (getFirebaseAuthOrNull(context)?.currentUser != null) {
         onAuthSuccess()
         return
     }
@@ -295,7 +301,9 @@ fun attemptAutoSignIn(
             if (credential is CustomCredential && credential.type == TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                 val googleIdToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
                 val authCredential = GoogleAuthProvider.getCredential(googleIdToken, null)
-                Firebase.auth.signInWithCredential(authCredential).await()
+                (getFirebaseAuthOrNull(context)
+                    ?: throw IllegalStateException("Firebase is not configured for this app."))
+                    .signInWithCredential(authCredential).await()
                 onAuthSuccess()
             } else {
                 onUnauthenticated()
@@ -331,7 +339,9 @@ fun onGoogleSignInClicked(
             if (credential is CustomCredential && credential.type == TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
                 val googleIdToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
                 val authCredential = GoogleAuthProvider.getCredential(googleIdToken, null)
-                Firebase.auth.signInWithCredential(authCredential).await()
+                (getFirebaseAuthOrNull(context)
+                    ?: throw IllegalStateException("Firebase is not configured for this app."))
+                    .signInWithCredential(authCredential).await()
                 onAuthSuccess()
             } else {
                 onAuthError("نوع بيانات الاعتماد غير متوقع")
@@ -352,7 +362,7 @@ fun signOutGoogle(
     onSignOutComplete: () -> Unit,
     scope: CoroutineScope
 ) {
-    Firebase.auth.signOut()
+    getFirebaseAuthOrNull(context)?.signOut()
     scope.launch {
         try {
             credentialManager.clearCredentialState(ClearCredentialStateRequest())
