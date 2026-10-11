@@ -1,0 +1,112 @@
+{
+  "entities": {
+    "Patient": {
+      "title": "Patient",
+      "description": "Patient record and dental treatment financial record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "patientName": { "type": "string" },
+        "caseType": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "remainingAmount": { "type": "number" },
+        "dateAndDay": { "type": "string" },
+        "diagnosisAndTreatment": { "type": "string" },
+        "phoneNumber": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["patientName", "totalAmount", "userId"]
+    },
+    "Lab": {
+      "title": "Lab",
+      "description": "Dental lab order and prosthetic work record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "labName": { "type": "string" },
+        "workType": { "type": "string" },
+        "teethCount": { "type": "number" },
+        "shade": { "type": "string" },
+        "sentDate": { "type": "string" },
+        "receivedDate": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "remainingAmount": { "type": "number" },
+        "phoneNumber": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["labName", "totalAmount", "userId"]
+    },
+    "Material": {
+      "title": "Material",
+      "description": "Dental supply and store invoice record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "storeName": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "materialType": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "remainingAmount": { "type": "number" },
+        "phoneNumber": { "type": "string" },
+        "userId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["storeName", "totalAmount", "userId"]
+    },
+    "Account": {
+      "title": "Account",
+      "description": "Clinic financial account or cash drawer",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "accountName": { "type": "string" },
+        "accountType": { "type": "string" },
+        "balanceLimit": { "type": "number" },
+        "currentBalance": { "type": "number" },
+        "userId": { "type": "string" }
+      },
+      "required": ["accountName", "userId"]
+    },
+    "ClinicProfile": {
+      "title": "ClinicProfile",
+      "description": "Clinic branding, doctor credentials and configuration",
+      "type": "object",
+      "properties": {
+        "clinicName": { "type": "string" },
+        "doctorName": { "type": "string" },
+        "doctorPhone": { "type": "string" },
+        "currency": { "type": "string" },
+        "gmailEmail": { "type": "string" },
+        "userId": { "type": "string" }
+      },
+      "required": ["doctorName", "userId"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/patients/{patientId}": {
+      "schema": "Patient",
+      "description": "General patient dental records"
+    },
+    "/users/{userId}/labs/{labId}": {
+      "schema": "Lab",
+      "description": "Dental lab orders and prosthesis accounts"
+    },
+    "/users/{userId}/materials/{materialId}": {
+      "schema": "Material",
+      "description": "Dental store supply invoices"
+    },
+    "/users/{userId}/accounts/{accountId}": {
+      "schema": "Account",
+      "description": "Clinic treasury and financial accounts"
+    },
+    "/users/{userId}/profile/settings": {
+      "schema": "ClinicProfile",
+      "description": "Doctor profile and clinic settings"
+    }
+  }
+}

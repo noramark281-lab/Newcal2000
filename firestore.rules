@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isValidPatient(data) {
+      return data.patientName is string && data.patientName.size() > 0 &&
+             data.totalAmount is number &&
+             data.userId == request.auth.uid;
+    }
+
+    function isValidLab(data) {
+      return data.labName is string && data.labName.size() > 0 &&
+             data.totalAmount is number &&
+             data.userId == request.auth.uid;
+    }
+
+    function isValidMaterial(data) {
+      return data.storeName is string && data.storeName.size() > 0 &&
+             data.totalAmount is number &&
+             data.userId == request.auth.uid;
+    }
+
+    function isValidAccount(data) {
+      return data.accountName is string && data.accountName.size() > 0 &&
+             data.userId == request.auth.uid;
+    }
+
+    function isValidProfile(data) {
+      return data.doctorName is string && data.doctorName.size() > 0 &&
+             data.userId == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      match /patients/{patientId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidPatient(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /labs/{labId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidLab(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /materials/{materialId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidMaterial(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /accounts/{accountId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidAccount(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+
+      match /profile/{settingId} {
+        allow read: if isOwner(userId);
+        allow create, update: if isOwner(userId) && isValidProfile(request.resource.data);
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

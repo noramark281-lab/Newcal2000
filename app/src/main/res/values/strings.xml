@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">عيادة الرحمن</string>
+    <string name="clinic_name_en">ALRAHMAN CLINICAL</string>
+    <string name="doctor_name">الدكتور : مالك الرميمة</string>
+    <string name="doctor_phone">771134103</string>
+    <string name="app_full_title">برنامج حسابات عيادة الرحمن لطب وجراحة الفم والاسنان</string>
+    <string name="app_credits">برمجة الدكتور : مالك الرميمة</string>
+    
+    <string name="tab_general">عام</string>
+    <string name="tab_lab">المعمل</string>
+    <string name="tab_materials">المواد</string>
+    
+    <string name="btn_add">إضافة</string>
+    <string name="btn_save">حفظ</string>
+    <string name="btn_cancel">إلغاء</string>
+    <string name="btn_delete">حذف</string>
+    <string name="btn_export_pdf">حفظ PDF</string>
+    <string name="btn_export_excel">حفظ إكسل</string>
+    <string name="btn_send_reminder">إرسال رسالة تذكيرية</string>
+</resources>

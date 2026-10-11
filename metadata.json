@@ -1,0 +1,6 @@
+{
+  "name": "عيادة الرحمن",
+  "description": "برنامج حسابات عيادة الرحمن لطب وجراحة الفم والاسنان - إدارة المرضى والمعمل والمواد والمحاسبة",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
