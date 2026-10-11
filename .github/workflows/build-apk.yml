@@ -1,0 +1,98 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'إنشاء إصدار (GitHub Release) وتحميل الـ APK فيه'
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Package APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Prepare Environment & Secrets
+        run: |
+          touch .env
+          if [ -f .env.example ]; then
+            cat .env.example >> .env
+          fi
+          # Restore debug keystore if present in base64
+          if [ ! -f debug.keystore ] && [ -f debug.keystore.base64 ]; then
+            echo "Restoring debug.keystore from base64..."
+            base64 -d debug.keystore.base64 > debug.keystore
+          elif [ ! -f debug.keystore ]; then
+            echo "Generating debug.keystore fallback..."
+            keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          fi
+
+      - name: Make Gradlew Executable
+        run: chmod +x gradlew
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Prepare APK Output
+        run: |
+          mkdir -p release-output
+          cp app/build/outputs/apk/debug/app-debug.apk release-output/AlRahman-Clinic-v1.0.apk
+          echo "APK generated successfully at release-output/AlRahman-Clinic-v1.0.apk"
+          ls -lh release-output/
+
+      - name: Upload APK as Workflow Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AlRahman-Clinic-APK
+          path: release-output/AlRahman-Clinic-v1.0.apk
+          retention-days: 30
+
+      - name: Create GitHub Release
+        if: github.event_name == 'workflow_dispatch' && inputs.create_release == true
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: "عيادة الرحمن - تطبيق أندرويد v1.0 (Build ${{ github.run_number }})"
+          body: |
+            ### 🦷 برنامج حسابات عيادة الرحمن لطب وجراحة الفم والاسنان
+            - **برمجة وتصميم:** الدكتور مالك الرميمة
+            - **الهاتف:** 771134103
+            - **البريد:** aboanasanam42@gmail.com
+            
+            ---
+            #### 📱 التثبيت والتحميل:
+            قم بتحميل ملف `AlRahman-Clinic-v1.0.apk` المرفق بالأسفل وتثبيته مباشرة على هاتفك الأندرويد.
+          files: release-output/AlRahman-Clinic-v1.0.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add Step Summary
+        run: |
+          echo "## 🚀 تم بناء تطبيق عيادة الرحمن بنجاح! (Build Successful)" >> $GITHUB_STEP_SUMMARY
+          echo "تم إنشاء ملف الـ APK بنجاح ويمكنك تحميله الآن مباشرة من قسم **Artifacts** في أعلى أو أسفل هذه الصفحة باسم: **AlRahman-Clinic-APK**." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **اسم الملف:** AlRahman-Clinic-v1.0.apk" >> $GITHUB_STEP_SUMMARY
+          echo "- **النسخة:** 1.0 (Android 15 Ready)" >> $GITHUB_STEP_SUMMARY
+          echo "- **الدكتور:** مالك الرميمة (771134103)" >> $GITHUB_STEP_SUMMARY
