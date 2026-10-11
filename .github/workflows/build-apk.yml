@@ -44,22 +44,34 @@ jobs:
 
           # 2. Restore debug.keystore in root and app/
           if [ -f debug.keystore.base64 ]; then
-            base64 -d debug.keystore.base64 > debug.keystore
+            base64 -d debug.keystore.base64 > debug.keystore 2>/dev/null || true
           fi
           if [ ! -f debug.keystore ]; then
             keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           fi
           cp debug.keystore app/debug.keystore 2>/dev/null || true
 
-          # 3. Restore upload keystore
-          if [ -f my-upload-key.base64 ]; then
-            base64 -d my-upload-key.base64 > my-upload-key.jks
+          # 3. Restore upload keystore (from GitHub Secrets if provided, or repository base64, or generate)
+          KEY_PASS="${{ secrets.CM_KEYSTORE_PASSWORD || secrets.STORE_PASSWORD || 'MALEK-123' }}"
+          ALIAS_NAME="${{ secrets.CM_KEY_ALIAS || 'upload' }}"
+
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > my-upload-key.jks 2>/dev/null || true
+          elif [ -f my-upload-key.base64 ]; then
+            base64 -d my-upload-key.base64 > my-upload-key.jks 2>/dev/null || true
           elif [ -f release-keystore.base64 ]; then
-            base64 -d release-keystore.base64 > my-upload-key.jks
-            keytool -changealias -alias albader_name -destalias upload -keystore my-upload-key.jks -storepass MALEK-123 || true
+            base64 -d release-keystore.base64 > my-upload-key.jks 2>/dev/null || true
           fi
+
+          if [ -f my-upload-key.jks ]; then
+            if [ "$ALIAS_NAME" != "upload" ]; then
+              keytool -changealias -alias "$ALIAS_NAME" -destalias upload -keystore my-upload-key.jks -storepass "$KEY_PASS" 2>/dev/null || true
+            fi
+            keytool -changealias -alias albader_name -destalias upload -keystore my-upload-key.jks -storepass "$KEY_PASS" 2>/dev/null || true
+          fi
+
           if [ ! -f my-upload-key.jks ]; then
-            keytool -genkey -v -keystore my-upload-key.jks -storepass MALEK-123 -alias upload -keypass MALEK-123 -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=AlRahman Clinic,O=AlRahman,C=YE"
+            keytool -genkey -v -keystore my-upload-key.jks -storepass "$KEY_PASS" -alias upload -keypass "$KEY_PASS" -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=AlRahman Clinic,O=AlRahman,C=YE"
           fi
           cp my-upload-key.jks app/my-upload-key.jks 2>/dev/null || true
 
@@ -68,15 +80,11 @@ jobs:
 
       - name: Build Android APKs
         env:
-          STORE_PASSWORD: "MALEK-123"
-          KEY_PASSWORD: "MALEK-123"
+          STORE_PASSWORD: ${{ secrets.CM_KEYSTORE_PASSWORD || secrets.STORE_PASSWORD || 'MALEK-123' }}
+          KEY_PASSWORD: ${{ secrets.CM_KEY_PASSWORD || secrets.KEY_PASSWORD || 'MALEK-123' }}
           KEYSTORE_PATH: "${{ github.workspace }}/my-upload-key.jks"
-          CM_KEYSTORE_PASSWORD: "MALEK-123"
-          CM_KEY_ALIAS: "albader_name"
-          CM_KEY_PASSWORD: "MALEK-123"
         run: |
-          # Build with lint and tests excluded to guarantee zero CI build failures
-          ./gradlew assembleDebug assembleRelease -x lint -x lintVitalRelease -x test --no-daemon --stacktrace
+          ./gradlew assembleDebug assembleRelease -x test --no-daemon --stacktrace
 
       - name: Collect Output APKs
         run: |
